@@ -3,6 +3,7 @@
 struct Item {
     int x = 0;
     int y = 0;
-    bool isAlive = false;
     int money = 0;
+    int hp = 0;
+    bool isKey;
 };

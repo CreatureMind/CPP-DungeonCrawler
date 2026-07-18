@@ -33,6 +33,8 @@ void Game::load(const std::string& iniFilepath) {
     bind("Controls.DOWN", Action::MOVE_DOWN);
     bind("Controls.LEFT", Action::MOVE_LEFT);
     bind("Controls.RIGHT", Action::MOVE_RIGHT);
+    bind("Controls.USE_ITEM", Action::USE_ITEM);
+    bind("Controls.QUIT", Action::QUIT);
 
     // Map parsing
     std::string mapStr = parser.get("Layout.map_string").value_or("");
@@ -44,11 +46,19 @@ void Game::load(const std::string& iniFilepath) {
     for (int y = 0; y < mapH; ++y) {
         for (int x = 0; x < mapW; ++x) {
             char tile = m_map.getTileAt(x, y);
+
             if (tile == '@') {
-                m_player.x = x; m_player.y = y;
+                m_player.x = x;
+                m_player.y = y;
             }
-            else if (tile == 'M') {
-                Enemy e; e.x = x; e.y = y; m_enemies.push_back(e);
+            else if (tile != '.' && tile != '#') {
+                Enemy e;
+                e.x = x;
+                e.y = y;
+                e.mapChar = tile;
+                m_enemies.push_back(e);
+
+                TraceLog(LOG_INFO, "Successfully spawned a valid monster '%c' at position (%d, %d)", tile, x, y);
             }
         }
     }
@@ -56,10 +66,38 @@ void Game::load(const std::string& iniFilepath) {
     // Load custom configuration JSON layout values
     try {
         parser.load("data/dungeon.json");
+        TraceLog(LOG_INFO, "Parser loaded dungeon.json successfully!");
+
+        auto testGoblinHp = parser.get("enemies.G.hp");
+        TraceLog(LOG_WARNING, "PARSER TRACKING: Querying 'enemies.G.hp' returned: %s",
+            testGoblinHp ? testGoblinHp->c_str() : "NULL / NOT FOUND");
+
         if (auto p_hp = parser.get("player.hp")) m_player.health = std::stoi(*p_hp);
-        if (auto p_at = parser.get("player.attack")) m_player.attack = std::stoi(*p_at);
+        if (auto p_attack = parser.get("player.attack")) m_player.attack = std::stoi(*p_attack);
+        if (auto p_coins = parser.get("player.coins")) m_player.coins = std::stoi(*p_coins);
+        if (auto p_exp = parser.get("player.exp")) m_player.exp = std::stoi(*p_exp);
+
+        for (auto& enemy : m_enemies) {
+            std::string keyPrefix = "enemies." + std::string(1, enemy.mapChar);
+
+            // Extract stats from JSON based on the character token box layout
+            if (auto e_name = parser.get(keyPrefix + ".name"))   enemy.name = *e_name;
+            if (auto e_hp = parser.get(keyPrefix + ".hp")) {
+                enemy.health = std::stoi(*e_hp);
+                TraceLog(LOG_INFO, "Successfully loaded custom HP (%d) for enemy token '%c'", enemy.health, enemy.mapChar);
+            }
+            else {
+                TraceLog(LOG_WARNING, "Key '%s.hp' was missing. Using default fallback header stats instead.", keyPrefix.c_str());
+            }
+            if (auto e_attack = parser.get(keyPrefix + ".attack")) enemy.attack = std::stoi(*e_attack);
+            if (auto e_tileX = parser.get(keyPrefix + ".tileX"))  enemy.tileX = std::stoi(*e_tileX);
+            if (auto e_tileY = parser.get(keyPrefix + ".tileY"))  enemy.tileY = std::stoi(*e_tileY);
+            if (auto e_exp = parser.get(keyPrefix + ".exp"))  enemy.exp = std::stoi(*e_exp);
+        }
     }
-    catch (...) {}
+    catch (const std::exception& e) {
+        TraceLog(LOG_ERROR, "JSON Parsing Failure Error: %s", e.what());
+    }
 }
 
 void Game::handleAction(Action a) {
@@ -83,9 +121,9 @@ void Game::handleAction(Action a) {
 
     // 2. Check for item picking options
     for (auto it = m_chests.begin(); it != m_chests.end(); ++it) {
-        if (it->isAlive && it->x == targetX && it->y == targetY) {
-            m_player.money += it->money;
-            it->isAlive = false;
+        if (it->isKey && it->x == targetX && it->y == targetY) {
+            m_player.coins += it->money;
+            it->isKey = false;
         }
     }
 

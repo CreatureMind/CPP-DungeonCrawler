@@ -9,6 +9,7 @@ Renderer::Renderer() {
     }
 
     m_tilemapTexture = LoadTextureFromImage(img);
+    m_font = LoadFont("assets/fonts/8-bit-hud.ttf");
     UnloadImage(img);
 }
 
@@ -59,7 +60,7 @@ void Renderer::draw(const Game& game) {
             // Layer 2: Draw Active Non-Player Entities relative to player positions
             for (const auto& enemy : game.enemies()) {
                 if (enemy.isAlive && enemy.x == mapX && enemy.y == mapY) {
-                    drawTile(screenX, screenY, 11, 0); // Enemy orc vector sprite token
+                    drawTile(screenX, screenY, enemy.tileX, enemy.tileY); // Enemy orc vector sprite token
                 }
             }
         }
@@ -69,8 +70,12 @@ void Renderer::draw(const Game& game) {
     drawTile(centerX - (SCALED_TILE_SIZE / 2), centerY - (SCALED_TILE_SIZE / 2), 4, 0);
 
     // Layer 4: Modern User Interface HUD Data Text Overlays
-    DrawRectangle(10, 10, 220, 65, Fade(SKYBLUE, 0.5f));
-    DrawText(TextFormat("Player Pos: (%d, %d)", playerGridX, playerGridY), 20, 15, 16, WHITE);
-    DrawText(TextFormat("Health: %d HP", game.player().health), 20, 35, 16, RED);
-    DrawText(TextFormat("Gold Coins: $%d", game.player().money), 20, 55, 16, YELLOW);
+    DrawRectangle(10, 10, 240, 150, Fade(BLACK, 0.8f));
+    DrawTextEx(m_font, TextFormat("LVL %d", game.player().level), { 17, 15 }, 16, 0.0f, WHITE);
+    DrawTextEx(m_font, TextFormat("Health Points: %d", game.player().health), { 17, 35 }, 16, 0.0f, RED);
+    DrawTextEx(m_font, TextFormat("Experience Points: %d", game.player().exp), { 17, 55 }, 16, 0.0f, GREEN);
+    DrawTextEx(m_font, TextFormat("Gold Coins: %d", game.player().coins), { 17, 75 }, 16, 0.0f, GOLD);
+    DrawTextEx(m_font, TextFormat("Equiped: %d", game.player().coins), { 17, 95 }, 16, 0.0f, GRAY);
+    DrawTextEx(m_font, TextFormat("Potions: %d", game.player().coins), { 17, 115 }, 16, 0.0f, BLUE);
+    DrawTextEx(m_font, TextFormat("Keys: %d", game.player().coins), { 17, 135 }, 16, 0.0f, YELLOW);
 }

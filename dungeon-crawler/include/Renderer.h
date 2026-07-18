@@ -9,5 +9,6 @@ public:
 
 private:
     Texture2D m_tilemapTexture;
+    Font m_font;
     void drawTile(int screenX, int screenY, int texIdxX, int texIdxY);
 };
