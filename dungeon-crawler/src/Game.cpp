@@ -75,7 +75,6 @@ void Game::load(const std::string& iniFilepath) {
         if (auto p_hp = parser.get("player.hp")) m_player.health = std::stoi(*p_hp);
         if (auto p_attack = parser.get("player.attack")) m_player.attack = std::stoi(*p_attack);
         if (auto p_coins = parser.get("player.coins")) m_player.coins = std::stoi(*p_coins);
-        if (auto p_exp = parser.get("player.exp")) m_player.exp = std::stoi(*p_exp);
 
         for (auto& enemy : m_enemies) {
             std::string keyPrefix = "enemies." + std::string(1, enemy.mapChar);
@@ -92,7 +91,13 @@ void Game::load(const std::string& iniFilepath) {
             if (auto e_attack = parser.get(keyPrefix + ".attack")) enemy.attack = std::stoi(*e_attack);
             if (auto e_tileX = parser.get(keyPrefix + ".tileX"))  enemy.tileX = std::stoi(*e_tileX);
             if (auto e_tileY = parser.get(keyPrefix + ".tileY"))  enemy.tileY = std::stoi(*e_tileY);
-            if (auto e_exp = parser.get(keyPrefix + ".exp"))  enemy.exp = std::stoi(*e_exp);
+            if (auto e_exp = parser.get(keyPrefix + ".exp"))  enemy.expReward = std::stoi(*e_exp);
+            if (auto e_loot = parser.get(keyPrefix + ".loot")) {
+                enemy.lootDropType = *e_loot;
+            }
+            else {
+                enemy.lootDropType = "random";
+            }
         }
     }
     catch (const std::exception& e) {
@@ -111,26 +116,37 @@ void Game::handleAction(Action a) {
     if (a == Action::MOVE_LEFT)  targetX -= 1;
     if (a == Action::MOVE_RIGHT) targetX += 1;
 
-    // 1. Check for enemy interactions
     for (auto& enemy : m_enemies) {
         if (enemy.isAlive && enemy.x == targetX && enemy.y == targetY) {
-            resolveAttack(m_player, enemy);
+            enemy.takeDamage(m_player.attack);
+
+            if (!enemy.isAlive) {
+                m_player.gainExp(enemy.expReward);
+
+                Item droppedItem = Item::createDroppedLoot(enemy.x, enemy.y, enemy.getLootTypeEnum());
+                m_chests.push_back(droppedItem); // Add it to your active ground items array
+            }
+            else {
+                m_player.takeDamage(enemy.attack);
+            }
+
             return; // Exit early to prevent walking on top of living enemies
         }
     }
 
     // 2. Check for item picking options
-    for (auto it = m_chests.begin(); it != m_chests.end(); ++it) {
-        if (it->isKey && it->x == targetX && it->y == targetY) {
-            m_player.coins += it->money;
-            it->isKey = false;
+    for (auto& item : m_chests) {
+        if (item.isAlive && item.x == targetX && item.y == targetY) {
+            m_player.collectItem(item);
+            item.isAlive = false;
         }
     }
 
     // 3. Process movement if path tile is safe and accessible
     if (m_map.isPassable(targetX, targetY)) {
-        m_player.x = targetX;
-        m_player.y = targetY;
+        int deltaX = targetX - m_player.x;
+        int deltaY = targetY - m_player.y;
+        m_player.move(deltaX, deltaY);
     }
 }
 

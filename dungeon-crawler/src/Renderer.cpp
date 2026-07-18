@@ -57,10 +57,16 @@ void Renderer::draw(const Game& game) {
                 drawTile(screenX, screenY, 4, 4); // Ground walk path floor tile
             }
 
+            for (const auto& item : game.chests()) {
+                if (item.isAlive && item.x == mapX && item.y == mapY) {
+                    drawTile(screenX, screenY, item.tileX, item.tileY);
+                }
+            }
+
             // Layer 2: Draw Active Non-Player Entities relative to player positions
             for (const auto& enemy : game.enemies()) {
                 if (enemy.isAlive && enemy.x == mapX && enemy.y == mapY) {
-                    drawTile(screenX, screenY, enemy.tileX, enemy.tileY); // Enemy orc vector sprite token
+                    drawTile(screenX, screenY, enemy.tileX, enemy.tileY);
                 }
             }
         }
@@ -73,7 +79,7 @@ void Renderer::draw(const Game& game) {
     DrawRectangle(10, 10, 240, 150, Fade(BLACK, 0.8f));
     DrawTextEx(m_font, TextFormat("LVL %d", game.player().level), { 17, 15 }, 16, 0.0f, WHITE);
     DrawTextEx(m_font, TextFormat("Health Points: %d", game.player().health), { 17, 35 }, 16, 0.0f, RED);
-    DrawTextEx(m_font, TextFormat("Experience Points: %d", game.player().exp), { 17, 55 }, 16, 0.0f, GREEN);
+    DrawTextEx(m_font, TextFormat("Experience Points: %d", game.player().currentExp), { 17, 55 }, 16, 0.0f, GREEN);
     DrawTextEx(m_font, TextFormat("Gold Coins: %d", game.player().coins), { 17, 75 }, 16, 0.0f, GOLD);
     DrawTextEx(m_font, TextFormat("Equiped: %d", game.player().coins), { 17, 95 }, 16, 0.0f, GRAY);
     DrawTextEx(m_font, TextFormat("Potions: %d", game.player().coins), { 17, 115 }, 16, 0.0f, BLUE);

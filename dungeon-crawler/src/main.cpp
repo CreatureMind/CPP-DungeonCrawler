@@ -1,6 +1,10 @@
 #include "GameEngine.h"
+#include <ctime>
+#include <cstdlib>
 
 int main(int argc, char** argv) {
+	std::srand(static_cast<unsigned int>(std::time(nullptr)));
+
 	Game game;
 	game.load("data/dungeon.ini");
 
