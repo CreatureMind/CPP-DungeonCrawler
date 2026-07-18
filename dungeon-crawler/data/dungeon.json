@@ -1,0 +1,10 @@
+{
+  "player": {
+    "hp": 120,
+    "attack": 20
+  },
+  "enemy": {
+    "hp": 45,
+    "attack": 8
+  }
+}
