@@ -12,7 +12,7 @@ Item Item::createDroppedLoot(int x, int y, ItemType type) {
     switch (type) {
     case ItemType::POTION:
         item.name = "Health Potion";
-        item.value = 25; // Heals for 25 HP
+        item.value = 25;
         item.tileX = 7;
         item.tileY = 8;
         break;
@@ -23,13 +23,13 @@ Item Item::createDroppedLoot(int x, int y, ItemType type) {
         break;
     case ItemType::SWORD:
         item.name = "Steel Sword";
-        item.value = 5;  // Adds +5 to attack power
+        item.value = 5;
         item.tileX = 6;
         item.tileY = 4;
         break;
     case ItemType::COINS:
         item.name = "Gold Coins";
-        item.value = GetRandomValue(1, 10);
+        item.value = GetRandomValue(2, 10);
         item.tileX = 8;
         item.tileY = 5;
         break;

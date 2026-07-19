@@ -26,6 +26,14 @@ char Map::getTileAt(int x, int y) const {
     return m_grid[y][x];
 }
 
+void Map::setTileAt(int x, int y, char newTile) {
+    if (y >= 0 && y < static_cast<int>(m_grid.size())) {
+        if (x >= 0 && x < static_cast<int>(m_grid[y].size())) {
+            m_grid[y][x] = newTile;
+        }
+    }
+}
+
 bool Map::isPassable(int x, int y) const {
     char tile = getTileAt(x, y);
     return (tile != '#'); // Walls block movement

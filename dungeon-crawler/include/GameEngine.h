@@ -16,7 +16,5 @@ constexpr int SCALED_TILE_SIZE = TILE_SIZE * TILE_SCALE;
 #include "Enemy.h"
 #include "Map.h"
 
-#include "Combat.h"
-
 #include "Game.h"
 #include "Renderer.h"

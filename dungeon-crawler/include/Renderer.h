@@ -12,3 +12,8 @@ private:
     Font m_font;
     void drawTile(int screenX, int screenY, int texIdxX, int texIdxY);
 };
+
+struct HudLine {
+    std::string text;
+    Color color;
+};

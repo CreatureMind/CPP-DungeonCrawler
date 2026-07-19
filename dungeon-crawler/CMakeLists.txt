@@ -30,15 +30,14 @@ FetchContent_MakeAvailable(raylib)
 # ----------------------------------
 
 set(GAME_SOURCES
-    src/main.cpp
-    src/Combat.cpp
     src/Enemy.cpp
     src/Game.cpp
+    src/InputHandler.cpp
     src/Item.cpp
+    src/main.cpp
     src/Map.cpp
     src/Player.cpp
     src/Renderer.cpp
-    src/InputHandler.cpp
 )
 
 add_executable(dungeon_crawler ${GAME_SOURCES})

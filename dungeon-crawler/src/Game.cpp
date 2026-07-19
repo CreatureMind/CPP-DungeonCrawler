@@ -43,6 +43,7 @@ void Game::load(const std::string& iniFilepath) {
     m_map.initialize(mapStr, mapW, mapH);
 
     // Scan map for actor spawn triggers
+    m_chests.clear();
     for (int y = 0; y < mapH; ++y) {
         for (int x = 0; x < mapW; ++x) {
             char tile = m_map.getTileAt(x, y);
@@ -51,14 +52,16 @@ void Game::load(const std::string& iniFilepath) {
                 m_player.x = x;
                 m_player.y = y;
             }
-            else if (tile != '.' && tile != '#') {
+            else if (tile == 'G' || tile == 'S' || tile == 'E') {
                 Enemy e;
                 e.x = x;
                 e.y = y;
                 e.mapChar = tile;
                 m_enemies.push_back(e);
-
-                TraceLog(LOG_INFO, "Successfully spawned a valid monster '%c' at position (%d, %d)", tile, x, y);
+            }
+            else if (tile == 'C') {
+                Item chest = Item::createDroppedLoot(x, y, ItemType::CHEST);
+                m_chests.push_back(chest);
             }
         }
     }
@@ -68,12 +71,8 @@ void Game::load(const std::string& iniFilepath) {
         parser.load("data/dungeon.json");
         TraceLog(LOG_INFO, "Parser loaded dungeon.json successfully!");
 
-        auto testGoblinHp = parser.get("enemies.G.hp");
-        TraceLog(LOG_WARNING, "PARSER TRACKING: Querying 'enemies.G.hp' returned: %s",
-            testGoblinHp ? testGoblinHp->c_str() : "NULL / NOT FOUND");
-
         if (auto p_hp = parser.get("player.hp")) m_player.health = std::stoi(*p_hp);
-        if (auto p_attack = parser.get("player.attack")) m_player.attack = std::stoi(*p_attack);
+        if (auto p_attack = parser.get("player.attack")) m_player.baseAttack = std::stoi(*p_attack);
         if (auto p_coins = parser.get("player.coins")) m_player.coins = std::stoi(*p_coins);
 
         for (auto& enemy : m_enemies) {
@@ -81,13 +80,7 @@ void Game::load(const std::string& iniFilepath) {
 
             // Extract stats from JSON based on the character token box layout
             if (auto e_name = parser.get(keyPrefix + ".name"))   enemy.name = *e_name;
-            if (auto e_hp = parser.get(keyPrefix + ".hp")) {
-                enemy.health = std::stoi(*e_hp);
-                TraceLog(LOG_INFO, "Successfully loaded custom HP (%d) for enemy token '%c'", enemy.health, enemy.mapChar);
-            }
-            else {
-                TraceLog(LOG_WARNING, "Key '%s.hp' was missing. Using default fallback header stats instead.", keyPrefix.c_str());
-            }
+            if (auto e_hp = parser.get(keyPrefix + ".hp")) enemy.health = std::stoi(*e_hp);
             if (auto e_attack = parser.get(keyPrefix + ".attack")) enemy.attack = std::stoi(*e_attack);
             if (auto e_tileX = parser.get(keyPrefix + ".tileX"))  enemy.tileX = std::stoi(*e_tileX);
             if (auto e_tileY = parser.get(keyPrefix + ".tileY"))  enemy.tileY = std::stoi(*e_tileY);
@@ -108,6 +101,11 @@ void Game::load(const std::string& iniFilepath) {
 void Game::handleAction(Action a) {
     if (a == Action::NONE || a == Action::QUIT) return;
 
+    if (a == Action::USE_ITEM) {
+        m_player.drinkPotion();
+        return;
+    }
+
     int targetX = m_player.x;
     int targetY = m_player.y;
 
@@ -116,21 +114,29 @@ void Game::handleAction(Action a) {
     if (a == Action::MOVE_LEFT)  targetX -= 1;
     if (a == Action::MOVE_RIGHT) targetX += 1;
 
+    char targetTile = m_map.getTileAt(targetX, targetY);
+    if (targetTile == 'D') {
+        if (m_player.useKey()) {
+            m_map.setTileAt(targetX, targetY, 'O');
+        }
+        else {
+            return;
+        }
+    }
+
     for (auto& enemy : m_enemies) {
         if (enemy.isAlive && enemy.x == targetX && enemy.y == targetY) {
-            enemy.takeDamage(m_player.attack);
+            enemy.takeDamage(m_player.getTotalAttack());
 
             if (!enemy.isAlive) {
                 m_player.gainExp(enemy.expReward);
-
                 Item droppedItem = Item::createDroppedLoot(enemy.x, enemy.y, enemy.getLootTypeEnum());
-                m_chests.push_back(droppedItem); // Add it to your active ground items array
+                m_chests.push_back(droppedItem);
             }
             else {
                 m_player.takeDamage(enemy.attack);
             }
-
-            return; // Exit early to prevent walking on top of living enemies
+            return;
         }
     }
 
@@ -139,6 +145,10 @@ void Game::handleAction(Action a) {
         if (item.isAlive && item.x == targetX && item.y == targetY) {
             m_player.collectItem(item);
             item.isAlive = false;
+
+            if (item.type == ItemType::CHEST) {
+                m_map.setTileAt(targetX, targetY, '.');
+            }
         }
     }
 

@@ -7,6 +7,7 @@ public:
     void initialize(const std::string& layoutStr, int width, int height);
 
     char getTileAt(int x, int y) const;
+    void setTileAt(int x, int y, char newTile);
     bool isPassable(int x, int y) const;
 
     int width() const { return m_width; }

@@ -1,5 +1,15 @@
 #include "GameEngine.h"
 
+
+const float startX = 15.0f;
+const float startY = 15.0f;
+const float fontSize = 16.0f;
+const float lineSpacing = 20.0f;
+const float padding = 10.0f;
+
+float maxWidth = 0.0f;
+float totalHeight = 0.0f;
+
 Renderer::Renderer() {
     // Assets fall back safely if files are missing during development initialization
     Image img = LoadImage("assets/art/tileset.png");
@@ -53,6 +63,12 @@ void Renderer::draw(const Game& game) {
             if (tile == '#') {
                 drawTile(screenX, screenY, 5, 5); // Tree/Wall block layout
             }
+            else if (tile == 'D') {
+                drawTile(screenX, screenY, 4, 2);
+            }
+            else if (tile == 'O') {
+                drawTile(screenX, screenY, 5, 2);
+            }
             else {
                 drawTile(screenX, screenY, 4, 4); // Ground walk path floor tile
             }
@@ -76,12 +92,37 @@ void Renderer::draw(const Game& game) {
     drawTile(centerX - (SCALED_TILE_SIZE / 2), centerY - (SCALED_TILE_SIZE / 2), 4, 0);
 
     // Layer 4: Modern User Interface HUD Data Text Overlays
-    DrawRectangle(10, 10, 240, 150, Fade(BLACK, 0.8f));
-    DrawTextEx(m_font, TextFormat("LVL %d", game.player().level), { 17, 15 }, 16, 0.0f, WHITE);
-    DrawTextEx(m_font, TextFormat("Health Points: %d", game.player().health), { 17, 35 }, 16, 0.0f, RED);
-    DrawTextEx(m_font, TextFormat("Experience Points: %d", game.player().currentExp), { 17, 55 }, 16, 0.0f, GREEN);
-    DrawTextEx(m_font, TextFormat("Gold Coins: %d", game.player().coins), { 17, 75 }, 16, 0.0f, GOLD);
-    DrawTextEx(m_font, TextFormat("Equiped: %d", game.player().coins), { 17, 95 }, 16, 0.0f, GRAY);
-    DrawTextEx(m_font, TextFormat("Potions: %d", game.player().coins), { 17, 115 }, 16, 0.0f, BLUE);
-    DrawTextEx(m_font, TextFormat("Keys: %d", game.player().coins), { 17, 135 }, 16, 0.0f, YELLOW);
+    std::vector<HudLine> hudLines = {
+        { TextFormat("LVL %u", game.player().level), WHITE },
+        { TextFormat("Health Points: %u", game.player().health), RED },
+        { TextFormat("Experience Points: %d", game.player().currentExp), GREEN },
+        { TextFormat("Gold Coins: %d", game.player().coins), GOLD },
+        { TextFormat("Equipped: %s", game.player().equippedWeaponName.c_str()), GRAY },
+        { TextFormat("Total Attack: %d ATK", game.player().getTotalAttack()), PURPLE },
+        { TextFormat("Potions: %d", game.player().potionCount), BLUE },
+        { TextFormat("Keys: %d", game.player().keyCount), YELLOW }
+    };
+
+    for (size_t i = 0; i < hudLines.size(); ++i) {
+        // Measure the exact size of this line using Raylib's text engine
+        Vector2 textSize = MeasureTextEx(m_font, hudLines[i].text.c_str(), fontSize, 0.0f);
+
+        // Find the longest line to dictate the final width
+        if (textSize.x > maxWidth) {
+            maxWidth = textSize.x;
+        }
+    }
+    totalHeight = (hudLines.size() - 1) * lineSpacing + fontSize;
+
+    float boxX = startX - padding;
+    float boxY = startY - padding;
+    float boxWidth = maxWidth + (padding * 2);
+    float boxHeight = totalHeight + (padding * 2);
+
+    DrawRectangleRec(Rectangle{ boxX, boxY, boxWidth, boxHeight }, Fade(BLACK, 0.8f));
+
+    for (size_t i = 0; i < hudLines.size(); ++i) {
+        float currentY = startY + (i * lineSpacing);
+        DrawTextEx(m_font, hudLines[i].text.c_str(), Vector2{ startX, currentY }, fontSize, 0.0f, hudLines[i].color);
+    }
 }
