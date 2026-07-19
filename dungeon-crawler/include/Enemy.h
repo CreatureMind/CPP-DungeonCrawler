@@ -19,4 +19,6 @@ struct Enemy {
 
     void takeDamage(int amount);
     ItemType getLootTypeEnum() const;
+
+    void updateAI(int playerX, int playerY, int& outTargetX, int& outTargetY);
 };

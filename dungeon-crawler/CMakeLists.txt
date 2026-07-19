@@ -30,6 +30,7 @@ FetchContent_MakeAvailable(raylib)
 # ----------------------------------
 
 set(GAME_SOURCES
+    src/AudioSystem.cpp
     src/Enemy.cpp
     src/Game.cpp
     src/InputHandler.cpp
@@ -52,10 +53,12 @@ add_custom_command(TARGET dungeon_crawler POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:dungeon_crawler>/data"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/data"
+        "${CMAKE_CURRENT_BINARY_DIR}/data"
         "$<TARGET_FILE_DIR:dungeon_crawler>/data"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:dungeon_crawler>/assets"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/assets"
+        "${CMAKE_CURRENT_BINARY_DIR}/assets"
         "$<TARGET_FILE_DIR:dungeon_crawler>/assets"
     COMMENT "Copying data and assets to runtime folder"
 )

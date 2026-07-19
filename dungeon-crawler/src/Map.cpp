@@ -36,5 +36,5 @@ void Map::setTileAt(int x, int y, char newTile) {
 
 bool Map::isPassable(int x, int y) const {
     char tile = getTileAt(x, y);
-    return (tile != '#'); // Walls block movement
+    return (tile != '#' && tile != 'W');
 }

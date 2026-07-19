@@ -36,4 +36,5 @@ struct Player {
     bool useKey();
     void drinkPotion();
     int getTotalAttack() const;
+    bool hasWeaponEquipped() const;
 };

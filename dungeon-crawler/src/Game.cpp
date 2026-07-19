@@ -98,11 +98,31 @@ void Game::load(const std::string& iniFilepath) {
     }
 }
 
+bool Game::isTileOccupiedByObstacle(int tx, int ty) const {
+    char tile = m_map.getTileAt(tx, ty);
+    if (tile == 'W' || tile == '#' || tile == 'D') return true;
+
+    for (const auto& chest : m_chests) {
+        if (chest.isAlive && chest.x == tx && chest.y == ty) return true;
+    }
+
+    for (const auto& genericEnemy : m_enemies) {
+        if (genericEnemy.isAlive && genericEnemy.x == tx && genericEnemy.y == ty) return true;
+    }
+
+    if (m_player.x == tx && m_player.y == ty) return true;
+
+    return false;
+}
+
 void Game::handleAction(Action a) {
     if (a == Action::NONE || a == Action::QUIT) return;
 
+    bool playerTookAnActiveTurn = false;
+
     if (a == Action::USE_ITEM) {
         m_player.drinkPotion();
+        playerTookAnActiveTurn = true;
         return;
     }
 
@@ -117,7 +137,10 @@ void Game::handleAction(Action a) {
     char targetTile = m_map.getTileAt(targetX, targetY);
     if (targetTile == 'D') {
         if (m_player.useKey()) {
+            AudioBridge::trigger(GameEvent::UNLOCKED_DOOR);
+
             m_map.setTileAt(targetX, targetY, 'O');
+            playerTookAnActiveTurn = true;
         }
         else {
             return;
@@ -126,10 +149,16 @@ void Game::handleAction(Action a) {
 
     for (auto& enemy : m_enemies) {
         if (enemy.isAlive && enemy.x == targetX && enemy.y == targetY) {
+            if (m_player.hasWeaponEquipped())
+                AudioBridge::trigger(GameEvent::SWORD_ATTACK);
+            
             enemy.takeDamage(m_player.getTotalAttack());
+            playerTookAnActiveTurn = true;
 
             if (!enemy.isAlive) {
                 m_player.gainExp(enemy.expReward);
+                playerTookAnActiveTurn = true;
+
                 Item droppedItem = Item::createDroppedLoot(enemy.x, enemy.y, enemy.getLootTypeEnum());
                 m_chests.push_back(droppedItem);
             }
@@ -140,27 +169,82 @@ void Game::handleAction(Action a) {
         }
     }
 
-    // 2. Check for item picking options
     for (auto& item : m_chests) {
         if (item.isAlive && item.x == targetX && item.y == targetY) {
             m_player.collectItem(item);
             item.isAlive = false;
 
+            playerTookAnActiveTurn = true;
+
             if (item.type == ItemType::CHEST) {
-                m_map.setTileAt(targetX, targetY, '.');
+                m_map.setTileAt(targetX, targetY, 'V');
             }
         }
     }
 
-    // 3. Process movement if path tile is safe and accessible
     if (m_map.isPassable(targetX, targetY)) {
+        if (m_player.x != targetX || m_player.y != targetY) {
+            AudioBridge::trigger(GameEvent::WALKED);
+            playerTookAnActiveTurn = true;
+        }
+
         int deltaX = targetX - m_player.x;
         int deltaY = targetY - m_player.y;
+
         m_player.move(deltaX, deltaY);
+    }
+
+    if (playerTookAnActiveTurn)
+        m_enemyTurnPending = true;
+}
+
+void Game::executeEnemyTurn() {
+    m_enemyTurnPending = false;
+
+    for (auto& enemy : m_enemies) {
+        if (!enemy.isAlive) continue;
+
+        int currentDistance = std::abs(enemy.x - m_player.x) + std::abs(enemy.y - m_player.y);
+
+        if (currentDistance == 1) {
+            m_player.takeDamage(enemy.attack);
+            AudioBridge::trigger(GameEvent::ATTACKED);
+
+            continue;
+        }
+
+        int nextEnemyX = enemy.x;
+        int nextEnemyY = enemy.y;
+
+        enemy.updateAI(m_player.x, m_player.y, nextEnemyX, nextEnemyY);
+
+        if (!isTileOccupiedByObstacle(nextEnemyX, nextEnemyY)) {
+            enemy.x = nextEnemyX;
+            enemy.y = nextEnemyY;
+        }
     }
 }
 
 Action Game::mapKeyToAction(int pressedKey) const {
     auto it = m_keyBindings.find(pressedKey);
     return (it != m_keyBindings.end()) ? it->second : Action::NONE;
+}
+
+void Game::restart() {
+    m_player.health = m_player.maxHealth;
+    m_player.currentExp = 0;
+    m_player.level = 1;
+    m_player.coins = 0;
+    m_player.equippedWeaponName = "Fists";
+    m_player.m_equippedWeapon = nullptr;
+
+    for (Item* ptr : m_player.m_inventory) {
+        delete ptr;
+    }
+    m_player.m_inventory.clear();
+
+    m_enemies.clear();
+    m_chests.clear();
+
+    this->load("data/dungeon.ini");
 }

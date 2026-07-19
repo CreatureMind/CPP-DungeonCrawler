@@ -1,4 +1,4 @@
-#include "Player.h"
+#include "GameEngine.h"
 
 int attackBonus = 5;
 int expToNextLevel = 100;
@@ -9,11 +9,16 @@ void Player::move(int deltaX, int deltaY) {
 }
 
 void Player::takeDamage(int amount) {
+    AudioBridge::trigger(GameEvent::ATTACKED);
+
     health -= amount;
-    if (health < 0) health = 0;
+
+    if (health < 0) 
+        health = 0;
 }
 
 void Player::addCoins(int amount) {
+    AudioBridge::trigger(GameEvent::PICKED_GOLD);
     coins += amount;
 }
 
@@ -27,7 +32,11 @@ void Player::chechLevelUp() {
 
     if (currentExp >= expToNextLevel) {
         auto leftover = currentExp - expToNextLevel;
+
         level++;
+        
+        AudioBridge::trigger(GameEvent::LEVEL_UP);
+
         maxHealth *= 1.1f;
         baseAttack += attackBonus;
         currentExp = leftover;
@@ -39,30 +48,34 @@ void Player::chechLevelUp() {
 
 void Player::collectItem(const Item& item) {
     if (item.type == ItemType::COINS) {
-        coins += item.value;
+        addCoins(item.value);
     }
     else if (item.type == ItemType::CHEST) {
-        coins += item.value;
+        addCoins(item.value);
     }
-    else if (item.type == ItemType::POTION) {
-        potionCount++;
-    }
-    else if (item.type == ItemType::KEY) {
-        keyCount++;
-    }
-    else if (item.type == ItemType::SWORD) {
-        Item* newWeaponInBag = new Item(item);
-        m_inventory.push_back(newWeaponInBag);
+    else {
+        AudioBridge::trigger(GameEvent::PICKED_LOOT);
 
-        if (m_equippedWeapon == nullptr) {
-            m_equippedWeapon = newWeaponInBag;
-            equippedWeaponName = newWeaponInBag->name;
-            return;
+        if (item.type == ItemType::POTION) {
+            potionCount++;
         }
+        else if (item.type == ItemType::KEY) {
+            keyCount++;
+        }
+        else if (item.type == ItemType::SWORD) {
+            Item* newWeaponInBag = new Item(item);
+            m_inventory.push_back(newWeaponInBag);
 
-        if (newWeaponInBag->value > m_equippedWeapon->value) {
-            m_equippedWeapon = newWeaponInBag;
-            equippedWeaponName = newWeaponInBag->name;
+            if (m_equippedWeapon == nullptr) {
+                m_equippedWeapon = newWeaponInBag;
+                equippedWeaponName = newWeaponInBag->name;
+                return;
+            }
+
+            if (newWeaponInBag->value > m_equippedWeapon->value) {
+                m_equippedWeapon = newWeaponInBag;
+                equippedWeaponName = newWeaponInBag->name;
+            }
         }
     }
 }
@@ -84,11 +97,18 @@ bool Player::useKey() {
 
 void Player::drinkPotion() {
     if (potionCount > 0) {
-        if (health >= maxHealth) {
-            return;
-        }
+        if (health >= maxHealth) return;
+
         potionCount--;
         health += 25;
-        if (health > maxHealth) health = maxHealth;
+
+        AudioBridge::trigger(GameEvent::DRINK_POTION);
+
+        if (health > maxHealth) 
+            health = maxHealth;
     }
+}
+
+bool Player::hasWeaponEquipped() const {
+    return (m_equippedWeapon != nullptr);
 }
