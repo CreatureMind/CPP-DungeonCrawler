@@ -8,7 +8,6 @@ Item Item::createDroppedLoot(int x, int y, ItemType type) {
     item.isAlive = true;
     item.type = type;
 
-    // Assign names and sheet coordinates based on what dropped
     switch (type) {
     case ItemType::POTION:
         item.name = "Health Potion";

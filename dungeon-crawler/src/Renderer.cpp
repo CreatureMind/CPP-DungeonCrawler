@@ -10,7 +10,6 @@ float maxWidth = 0.0f;
 float totalHeight = 0.0f;
 
 Renderer::Renderer() {
-    // Assets fall back safely if files are missing during development initialization
     Image img = LoadImage("assets/art/tileset.png");
 
     if (img.data == nullptr) {
@@ -80,7 +79,6 @@ void Renderer::draw(const Game& game) {
                 }
             }
 
-            // Layer 2: Draw Active Non-Player Entities relative to player positions
             for (const auto& enemy : game.enemies()) {
                 if (enemy.isAlive && enemy.x == mapX && enemy.y == mapY) {
                     drawTile(screenX, screenY, enemy.tileX, enemy.tileY);

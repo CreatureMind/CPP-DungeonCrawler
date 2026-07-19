@@ -36,13 +36,11 @@ void Game::load(const std::string& iniFilepath) {
     bind("Controls.USE_ITEM", Action::USE_ITEM);
     bind("Controls.QUIT", Action::QUIT);
 
-    // Map parsing
     std::string mapStr = parser.get("Layout.map_string").value_or("");
     int mapW = std::stoi(parser.get("Layout.map_width").value_or("0"));
     int mapH = std::stoi(parser.get("Layout.map_height").value_or("0"));
     m_map.initialize(mapStr, mapW, mapH);
 
-    // Scan map for actor spawn triggers
     m_chests.clear();
     for (int y = 0; y < mapH; ++y) {
         for (int x = 0; x < mapW; ++x) {
@@ -66,7 +64,6 @@ void Game::load(const std::string& iniFilepath) {
         }
     }
 
-    // Load custom configuration JSON layout values
     try {
         parser.load("data/dungeon.json");
         TraceLog(LOG_INFO, "Parser loaded dungeon.json successfully!");
@@ -78,7 +75,6 @@ void Game::load(const std::string& iniFilepath) {
         for (auto& enemy : m_enemies) {
             std::string keyPrefix = "enemies." + std::string(1, enemy.mapChar);
 
-            // Extract stats from JSON based on the character token box layout
             if (auto e_name = parser.get(keyPrefix + ".name"))   enemy.name = *e_name;
             if (auto e_hp = parser.get(keyPrefix + ".hp")) enemy.health = std::stoi(*e_hp);
             if (auto e_attack = parser.get(keyPrefix + ".attack")) enemy.attack = std::stoi(*e_attack);
